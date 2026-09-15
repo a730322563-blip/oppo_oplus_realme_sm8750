@@ -253,8 +253,7 @@ jobs:
             CC=clang LD=ld.lld HOSTLD=ld.lld O=out \
             M=$GITHUB_WORKSPACE/rt_driver_src \
             KCFLAGS+=-O2 \
-            KCFLAGS+=-Wno-error \
-            KCFLAGS+=-Wno-error=asm-operand-conflicts \
+            KCFLAGS+=-Wno-error \ 
             KCFLAGS+=-Wno-error=visibility \
             KCFLAGS+=-Wno-error=implicit-function-declaration \
             KCFLAGS+=-Wno-error=int-conversion \
