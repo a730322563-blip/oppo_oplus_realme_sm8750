@@ -209,7 +209,7 @@ static const struct file_operations rt_fops = {
     .owner          = THIS_MODULE,
     .open           = rt_open,
     .release        = rt_release,
-    .unlocked_ioctl = rt_io,
+    .unlocked_ioctl = rt_ioctl,
     .compat_ioctl   = rt_ioctl,   /* 32 位进程兼容 */
 };
 
