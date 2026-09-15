@@ -4,6 +4,8 @@
 #include "kernel.h"
 #include <linux/hw_breakpoint.h>
 #include <linux/perf_event.h>
+#include <linux/thread_info.h>
+#include <linux/sched.h>
 
 /* ================================================================
  * 硬件断点（perf_event 框架，符号动态解析）
@@ -107,13 +109,8 @@ static inline int hwbp_install(int pid, unsigned long addr, u32 bp_type)
         return ret;
     }
 
-    ret = perf_event_enable(g_hwbp.bp);
-    if (ret) {
-        CFI_VOID1(S.unregister_hw_breakpoint_ptr, g_hwbp.bp);
-        g_hwbp.bp = NULL;
-        if (tsk && S.put_task_struct) CFI_VOID1(S.put_task_struct, tsk);
-        return ret;
-    }
+    /* perf_event_enable 在当前内核里返回 void，不做返回值检查 */
+    perf_event_enable(g_hwbp.bp);
 
     g_hwbp.installed = true;
     pr_info("rt_driver: hwbp installed pid=%d addr=0x%lx type=%u\n",
