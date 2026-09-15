@@ -1,7 +1,6 @@
 #ifndef KERNEL_H
 #define KERNEL_H
-#include <asm/tlbflush.h>
-#include <linux/rcupdate.h>
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kprobes.h>
@@ -16,6 +15,10 @@
 #include <linux/kobject.h>
 #include <linux/vmalloc.h>
 #include <linux/set_memory.h>
+#include <linux/rcupdate.h>
+#include <linux/perf_event.h>
+#include <linux/hw_breakpoint.h>
+#include <linux/init.h>
 
 #include <asm/pgtable.h>
 #include <asm/ptrace.h>
@@ -25,6 +28,7 @@
 #include <asm/cacheflush.h>
 #include <asm/memory.h>
 #include <asm/tlb.h>
+#include <asm/tlbflush.h>
 
 #define PSR_SS_BIT  (1UL << 21)
 
@@ -34,16 +38,12 @@
 
 /* ================================================================
  * 一、动态符号解析（三级回退）
- *   路径A: kprobe 拿 kallsyms_lookup_name
- *   路径B: 用户态读 /proc/kallsyms 后通过 SYM_INJECT 注入
- *   路径C: 扫描 _stext~_etext 的 kallsyms 表（极少用）
  * ================================================================ */
 
 typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
 
 extern kallsyms_lookup_name_t g_kln;
 
-/* 需要动态解析的符号 */
 struct dyn_syms {
     struct pid *(*find_get_pid)(int nr);
     struct task_struct *(*get_pid_task)(struct pid *pid, enum pid_type type);
@@ -69,7 +69,6 @@ struct dyn_syms {
 
 extern struct dyn_syms S;
 
-/* 符号解析位图 */
 #define SYM_FIND_GET_PID          (1u << 0)
 #define SYM_GET_PID_TASK          (1u << 1)
 #define SYM_PUT_PID               (1u << 2)
@@ -87,20 +86,22 @@ extern struct dyn_syms S;
 extern u32 g_sym_mask;
 
 int  sym_resolve_all(void);
-int  sym_inject(const char *name, unsigned long addr);  /* 回退路径B */
+int  sym_inject(const char *name, unsigned long addr);
 
 /* ================================================================
  * 二、CFI 绕过
- *   1) 间接调用一律走 inline asm blr，编译器无法插入 __cfi_check
- *   2) patch_text() 写内核 text 时同时处理 CFI jump-table
+ *   注意：CFI_CLOBBERS 不再包含 x0-x3，
+ *   因为它们已被 CFI_CALL1..4 作为寄存器约束显式使用，
+ *   重复写进 clobber list 会触发 Clang 的 asm-operand-conflicts。
  * ================================================================ */
 
 #define CFI_CLOBBERS "memory","cc", \
-    "x1","x2","x3","x4","x5","x6","x7","x8","x9","x10", \
+    "x4","x5","x6","x7","x8","x9","x10", \
     "x11","x12","x13","x14","x15","x16","x17","x30", \
     "v0","v1","v2","v3","v4","v5","v6","v7", \
     "v16","v17","v18","v19","v20","v21","v22","v23", \
     "v24","v25","v26","v27","v28","v29","v30","v31"
+
 #define CFI_CALL1(fn, a1) ({                                          \
     register unsigned long _x0 __asm__("x0") = (unsigned long)(a1);   \
     __asm__ volatile("blr %1" : "+r"(_x0) : "r"(fn) : CFI_CLOBBERS); \
@@ -134,10 +135,8 @@ int  sym_inject(const char *name, unsigned long addr);  /* 回退路径B */
 
 /* ================================================================
  * 三、只读 text 安全写入
- *   优先 set_memory_rw（动态解析），失败则手改页表 PTE 写位
  * ================================================================ */
 
-/* 手改页表给只读内核地址加写权限（set_memory_rw 不可用时的回退） */
 static inline int kernel_text_unprotect(unsigned long addr)
 {
     pgd_t *pgd; p4d_t *p4d; pud_t *pud; pmd_t *pmd; pte_t *pte;
@@ -176,9 +175,7 @@ static inline void kernel_text_reprotect(unsigned long addr)
     }
 }
 
-/* 安全写内核 text：自动选 set_memory_rw 或手改页表，写完恢复 */
 int patch_text(unsigned long dst, const void *src, size_t len);
-/* 写一条 ARM64 指令 */
 int patch_insn(unsigned long addr, u32 insn);
 
 #endif
