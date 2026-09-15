@@ -639,10 +639,10 @@ jobs:
           echo "ccache状态："
           ccache -s
           echo "编译后空间:"
-          df - 
-          
-          - name: 编译外部模块 rt_driver.ko
-  run: |
+              df -h
+
+      - name: build rt_driver.ko
+run: |
     WORKDIR="$(pwd)"
     export PATH="$WORKDIR/kernel_workspace/clang18/bin:$PATH"
     export PATH="$WORKDIR/kernel_workspace/build-tools/bin:$PATH"
@@ -654,9 +654,9 @@ jobs:
     ls -l $GITHUB_WORKSPACE/rt_driver.ko
     strings $GITHUB_WORKSPACE/rt_driver.ko | grep vermagic || true
 
-- name: 上传 rt_driver.ko
-  uses: actions/upload-artifact@v7
-  with:
+      - name: upload rt_driver.ko
+      uses: actions/upload-artifact@v7
+      with:
     name: rt_driver.ko
     path: ${{ github.workspace }}/rt_driver.ko
 
