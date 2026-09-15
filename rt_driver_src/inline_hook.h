@@ -2,6 +2,7 @@
 #define INLINE_HOOK_H
 
 #include "kernel.h"
+#include <linux/perf_event.h>
 
 /* ================================================================
  * ARM64 内联 Hook
