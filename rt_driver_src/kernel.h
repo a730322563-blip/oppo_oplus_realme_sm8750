@@ -1,6 +1,7 @@
 #ifndef KERNEL_H
 #define KERNEL_H
-
+#include <asm/tlbflush.h>
+#include <linux/rcupdate.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kprobes.h>
