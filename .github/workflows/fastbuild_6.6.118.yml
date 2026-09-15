@@ -278,6 +278,8 @@ jobs:
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
           echo "内核编译完成"
+          echo "=== 内核编译后 Module.symvers 位置 ==="
+          find "$WORKDIR/kernel_workspace/common" -maxdepth 3 -name "Module.symvers" -exec ls -l {} \;
           df -h
 
       - name: build rt_driver.ko
@@ -289,10 +291,19 @@ jobs:
           WORKDIR="$GITHUB_WORKSPACE/kernel_workspace"
           export PATH="$WORKDIR/clang18/bin:$PATH"
           export PATH="$WORKDIR/build-tools/bin:$PATH"
+          echo "=== 查找 Module.symvers ==="
+          find "$WORKDIR/common" -maxdepth 3 -name "Module.symvers" -exec ls -l {} \;
+          SYMVERS="$WORKDIR/common/out/Module.symvers"
+          if [ ! -f "$SYMVERS" ]; then
+            SYMVERS=$(find "$WORKDIR/common" -maxdepth 3 -name "Module.symvers" | head -n 1)
+          fi
+          echo "使用 Module.symvers: $SYMVERS"
+          cp -f "$SYMVERS" "$WORKDIR/common/Module.symvers" 2>/dev/null || true
           cd "$WORKDIR/common"
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             CC=clang LD=ld.lld HOSTLD=ld.lld O=out \
             M=$GITHUB_WORKSPACE/rt_driver_src \
+            KBUILD_EXTRA_SYMBOLS="$SYMVERS" \
             KCFLAGS+=-O2 \
             KCFLAGS+=-Wno-error \
             KCFLAGS+=-Wno-error=visibility \
