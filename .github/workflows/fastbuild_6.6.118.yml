@@ -276,7 +276,8 @@ jobs:
           export CCACHE_DIR="${{ env.CCACHE_DIR }}"
           cd kernel_workspace/common
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image &&
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error modules
           echo "内核编译完成"
           echo "=== 内核编译后 Module.symvers 位置 ==="
           find "$WORKDIR/kernel_workspace/common" -maxdepth 3 -name "Module.symvers" -exec ls -l {} \;
@@ -296,6 +297,10 @@ jobs:
           SYMVERS="$WORKDIR/common/out/Module.symvers"
           if [ ! -f "$SYMVERS" ]; then
             SYMVERS=$(find "$WORKDIR/common" -maxdepth 3 -name "Module.symvers" | head -n 1)
+          fi
+          if [ -z "$SYMVERS" ] || [ ! -f "$SYMVERS" ]; then
+            echo "ERROR: Module.symvers 未找到！请检查内核是否成功编译了 modules。"
+            exit 1
           fi
           echo "使用 Module.symvers: $SYMVERS"
           cp -f "$SYMVERS" "$WORKDIR/common/Module.symvers" 2>/dev/null || true
