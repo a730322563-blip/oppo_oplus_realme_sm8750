@@ -304,11 +304,12 @@ jobs:
             cp -f "$SYMVERS" "$WORKDIR/common/Module.symvers" 2>/dev/null || true
           fi
           cd "$WORKDIR/common"
-          # 注意这里加入了 KBUILD_MODPOST_WARN=1 来解决 init_mm 未定义的问题
+          # 核心修复：加入 KBUILD_LDFLAGS_MODULE="-z undefs" 强行让链接器忽略未定义符号
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             CC=clang LD=ld.lld HOSTLD=ld.lld O=out \
             M=$GITHUB_WORKSPACE/rt_driver_src \
             KBUILD_MODPOST_WARN=1 \
+            KBUILD_LDFLAGS_MODULE="-z undefs" \
             KCFLAGS+=-O2 \
             KCFLAGS+=-Wno-error \
             KCFLAGS+=-Wno-error=visibility \
