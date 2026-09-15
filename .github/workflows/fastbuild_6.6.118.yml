@@ -639,7 +639,26 @@ jobs:
           echo "ccache状态："
           ccache -s
           echo "编译后空间:"
-          df -h
+          df - 
+          
+          - name: 编译外部模块 rt_driver.ko
+  run: |
+    WORKDIR="$(pwd)"
+    export PATH="$WORKDIR/kernel_workspace/clang18/bin:$PATH"
+    export PATH="$WORKDIR/kernel_workspace/build-tools/bin:$PATH"
+    cd kernel_workspace/common
+    make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+      CC=clang LD=ld.lld HOSTLD=ld.lld O=out \
+      M=$GITHUB_WORKSPACE \
+      KCFLAGS+=-O2 KCFLAGS+=-Wno-error modules
+    ls -l $GITHUB_WORKSPACE/rt_driver.ko
+    strings $GITHUB_WORKSPACE/rt_driver.ko | grep vermagic || true
+
+- name: 上传 rt_driver.ko
+  uses: actions/upload-artifact@v7
+  with:
+    name: rt_driver.ko
+    path: ${{ github.workspace }}/rt_driver.ko
 
       - name: 保存新的 ccache 缓存
         if: inputs.ccache_update || steps.ccache-restore.outputs.cache-hit != 'true'
