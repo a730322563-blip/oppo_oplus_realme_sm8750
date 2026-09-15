@@ -1,3 +1,3 @@
 obj-m := rt_driver.o
-rt_driver-objs := entry.c pte_track.h
+rt_driver-objs := entry.o
 ccflags-y += -I$(src)
