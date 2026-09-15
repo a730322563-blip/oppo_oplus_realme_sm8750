@@ -52,7 +52,8 @@ static inline void module_unhide(void)
     if (!g_hide.hidden) return;
 
     /* 恢复名字 */
-    strncpy(m->name, g_hide.saved_name, sizeof(g_hide.saved_name) - 1);
+    strncpy(m->name, g_hide.saved_name, sizeof(m->name) - 1);
+m->name[sizeof(m->name) - 1] = '\0';
 
     /* 恢复到摘除前的链表位置 */
     if (g_hide.list_in && g_hide.prev && g_hide.next) {
