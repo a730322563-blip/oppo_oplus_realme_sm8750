@@ -153,7 +153,7 @@ static inline int kernel_text_unprotect(unsigned long addr)
     pte = pte_offset_kernel(pmd, page);
     if (!pte || pte_none(*pte)) return -EFAULT;
     set_pte(pte, __pte(pte_val(*pte) | PTE_WRITE));
-    flush_tlb_kernel_page(page);
+    flush_tlb_all();
     return 0;
 }
 
@@ -171,7 +171,7 @@ static inline void kernel_text_reprotect(unsigned long addr)
     pte = pte_offset_kernel(pmd, page);
     if (pte && !pte_none(*pte)) {
         set_pte(pte, __pte(pte_val(*pte) & ~PTE_WRITE));
-        flush_tlb_kernel_page(page);
+        flush_tlb_all();
     }
 }
 
